@@ -117,7 +117,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 backBtn.addEventListener("click", () => {
-  window.location.href = "/";
+  window.location.href = "/index.html";
 });
 
 loadMe().catch(() => {

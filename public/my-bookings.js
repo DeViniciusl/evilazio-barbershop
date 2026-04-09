@@ -140,7 +140,7 @@ async function loadBookings() {
 }
 
 backButton.addEventListener("click", () => {
-  window.location.href = "/home.html";
+  window.location.href = "/index.html";
 });
 
 refreshButton.addEventListener("click", () => {

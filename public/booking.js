@@ -133,7 +133,7 @@ bookingForm.addEventListener("submit", async (event) => {
     
     // Redirect after 3 seconds
     setTimeout(() => {
-      window.location.href = "/";
+      window.location.href = "/index.html";
     }, 3000);
   } catch (_error) {
     setFeedback("Erro de conexão com o servidor.", "error");
@@ -144,7 +144,7 @@ bookingForm.addEventListener("submit", async (event) => {
 });
 
 backBtn.addEventListener("click", () => {
-  window.location.href = "/";
+  window.location.href = "/index.html";
 });
 
 (async () => {
