@@ -85,6 +85,32 @@
 
         <div id="vipFeedback" class="feedback" aria-live="polite"></div>
       </section>
+
+      <section class="card">
+        <h2>Status da Barbearia</h2>
+        <div class="admin-controls">
+          <div id="barbershopStatusDisplay" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
+            <p><strong>Status atual:</strong> <span id="currentBarbershopStatus">Carregando...</span></p>
+            <p id="currentClosureReason" style="display: none;"><strong>Motivo:</strong> <span id="closureReasonText"></span></p>
+          </div>
+          
+          <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <button id="openBarbershopBtn" type="button" class="outline-btn">Abrir Barbearia</button>
+            <button id="closeBarbershopBtn" type="button" class="outline-btn" style="color: #e74c3c;">Fechar Barbearia</button>
+          </div>
+
+          <div id="closeReasonSection" style="display: none;">
+            <label>
+              Motivo do fechamento (obrigatório)
+              <input id="closureReasonInput" type="text" placeholder="Ex: Férias, Manutenção, Saúde" required />
+            </label>
+            <button id="confirmClosureBtn" type="button">Confirmar fechamento</button>
+            <button id="cancelClosureBtn" type="button" class="outline-btn">Cancelar</button>
+          </div>
+        </div>
+
+        <p id="barbershopStatusFeedback" class="feedback" aria-live="polite"></p>
+      </section>
     </main>
 
     <script src="admin.js"></script>

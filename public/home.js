@@ -13,6 +13,8 @@ const feedback = document.getElementById("feedback");
 let selectedTime = "";
 let slotsRequestId = 0;
 let isCreatingBooking = false;
+let currentTime = "";
+let barbershopStatus = null;
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
@@ -27,6 +29,16 @@ function authHeaders() {
 function setFeedback(message, type) {
   feedback.textContent = message;
   feedback.className = `feedback ${type}`;
+}
+
+function isTimeAfterOrEqual(timeStr) {
+  // Compara uma string de tempo (HH:MM) com o tempo atual
+  const [currentHour, currentMinute] = currentTime.split(":").map(Number);
+  const [timeHour, timeMinute] = timeStr.split(":").map(Number);
+  
+  if (timeHour > currentHour) return true;
+  if (timeHour === currentHour && timeMinute >= currentMinute) return true;
+  return false;
 }
 
 function normalizeServiceKey(service) {
@@ -117,13 +129,20 @@ async function loadUser() {
 function renderSlots(slots) {
   slotGrid.innerHTML = "";
 
+  const now = new Date();
+  const todayStr = String(now.getDate()).padStart(2, "0");
+  const selectedDay = daySelect.value;
+  const isToday = selectedDay === todayStr;
+
   slots.forEach((slot) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "slot-btn";
     button.dataset.time = slot.time;
 
-    if (slot.status === "available") {
+    const isPastTime = isToday && !isTimeAfterOrEqual(slot.time);
+
+    if (slot.status === "available" && !isPastTime) {
       button.textContent = slot.time;
       button.classList.add("available");
       if (slot.time === selectedTime) {
@@ -134,6 +153,10 @@ function renderSlots(slots) {
         setFeedback(`Horário selecionado: ${slot.time}`, "success");
         loadSlots();
       });
+    } else if (isPastTime) {
+      button.textContent = `${slot.time} - passado`;
+      button.classList.add("booked");
+      button.disabled = true;
     } else {
       button.textContent = `${slot.time} - ocupado`;
       button.classList.add("booked");
@@ -166,6 +189,22 @@ async function loadSlots() {
       setFeedback(data.message || "Nao foi possivel carregar horarios.", "error");
       return;
     }
+
+    // Captura o tempo atual e o status da barbearia
+    if (data.currentTime) {
+      currentTime = data.currentTime;
+    }
+
+    if (data.barbershopStatus) {
+      barbershopStatus = data.barbershopStatus;
+      if (!data.barbershopStatus.isOpen) {
+        showBarbershopClosedModal(data.barbershopStatus.closureReason);
+        bookingBtn.disabled = true;
+        return;
+      }
+    }
+
+    bookingBtn.disabled = false;
 
     if (!data.slots.some((slot) => slot.time === selectedTime && slot.status === "available")) {
       selectedTime = "";
@@ -236,6 +275,50 @@ async function createBooking() {
     isCreatingBooking = false;
     bookingBtn.disabled = false;
   }
+}
+
+function showBarbershopClosedModal(reason) {
+  // Remove modal anterior se existir
+  const existingModal = document.getElementById("barbershopClosedModal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement("div");
+  modal.id = "barbershopClosedModal";
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  `;
+
+  const content = document.createElement("div");
+  content.style.cssText = `
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  `;
+
+  content.innerHTML = `
+    <h2 style="color: #e74c3c; margin-bottom: 15px;">🔒 Barbearia Fechada</h2>
+    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+      ${reason ? `<strong>Motivo:</strong> ${reason}` : "A barbearia está temporariamente fechada."}
+    </p>
+    <p style="color: #666; font-size: 14px;">Entre em contato conosco para mais informações.</p>
+  `;
+
+  modal.appendChild(content);
+  document.body.appendChild(modal);
 }
 
 daySelect.addEventListener("change", () => {

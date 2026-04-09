@@ -163,6 +163,33 @@ function getCurrentMonthKey() {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
+function getCurrentTimeInTimezone() {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = formatter.formatToParts(now);
+  const hour = parts.find((item) => item.type === "hour")?.value;
+  const minute = parts.find((item) => item.type === "minute")?.value;
+  return `${hour}:${minute}`;
+}
+
+function isTimeAfterOrEqual(timeStr, currentTimeStr) {
+  // Compara duas strings de tempo no formato HH:MM
+  const [currentHour, currentMinute] = currentTimeStr.split(":").map(Number);
+  const [timeHour, timeMinute] = timeStr.split(":").map(Number);
+  
+  if (timeHour > currentHour) return true;
+  if (timeHour === currentHour && timeMinute >= currentMinute) return true;
+  return false;
+}
+
 function normalizeDay(day) {
   const parsed = Number.parseInt(day, 10);
   if (!Number.isInteger(parsed)) {
@@ -375,6 +402,14 @@ async function isClosedDay(day) {
   return result.rows.length > 0;
 }
 
+async function getBarbershopStatus() {
+  const result = await query("SELECT is_open, closure_reason FROM barbershop_status LIMIT 1");
+  if (result.rows.length === 0) {
+    return { is_open: true, closure_reason: null };
+  }
+  return result.rows[0];
+}
+
 async function getClosedDaysInMonth() {
   const result = await query("SELECT day FROM closed_days ORDER BY day ASC");
   return result.rows.map((row) => row.day);
@@ -516,6 +551,27 @@ async function initDatabase() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_closed_days_day
     ON closed_days(day);
   `);
+
+  // Tabela para status da barbearia (aberta/fechada)
+  await query(`
+    CREATE TABLE IF NOT EXISTS barbershop_status (
+      id SERIAL PRIMARY KEY,
+      is_open BOOLEAN NOT NULL DEFAULT TRUE,
+      closure_reason TEXT,
+      closure_start TIMESTAMPTZ,
+      closure_end TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_by TEXT
+    );
+  `);
+
+  // Garante que existe apenas um registro
+  const statusCheck = await query("SELECT COUNT(*) as count FROM barbershop_status");
+  if (statusCheck.rows[0].count === 0) {
+    await query(
+      `INSERT INTO barbershop_status (is_open, updated_at) VALUES (TRUE, NOW());`
+    );
+  }
 }
 
 async function ensureAdminOnly() {
@@ -869,8 +925,19 @@ app.get(
       return res.status(400).json({ message: "Dia invalido para este mes." });
     }
 
+    const barbershopStatus = await getBarbershopStatus();
+    const currentTime = getCurrentTimeInTimezone();
     const slots = await buildDaySchedule(normalizedDay);
-    return res.json({ day: normalizedDay, slots });
+
+    return res.json({
+      day: normalizedDay,
+      slots,
+      barbershopStatus: {
+        isOpen: barbershopStatus.is_open,
+        closureReason: barbershopStatus.closure_reason,
+      },
+      currentTime,
+    });
   })
 );
 
@@ -880,6 +947,15 @@ app.post(
   asyncHandler(async (req, res) => {
     if (req.user.role === "admin") {
       return res.status(403).json({ message: "Admin nao realiza agendamento." });
+    }
+
+    // Verificar se a barbearia está aberta
+    const barbershopStatus = await getBarbershopStatus();
+    if (!barbershopStatus.is_open) {
+      return res.status(403).json({
+        message: `A barbearia está fechada.${barbershopStatus.closure_reason ? ` Motivo: ${barbershopStatus.closure_reason}` : ""}`,
+        barbershopClosed: true,
+      });
     }
 
     const { day, time, service, phone } = req.body || {};
@@ -899,6 +975,17 @@ app.post(
 
     if (!isValidSlotTime(time)) {
       return res.status(400).json({ message: "Horario invalido. Escolha entre 08:00 e 19:00." });
+    }
+
+    // Validar que o horário não é passado para o dia de hoje
+    const { today } = getCurrentMonthContext();
+    const todayStr = String(today).padStart(2, "0");
+    
+    if (normalizedDay === todayStr) {
+      const currentTime = getCurrentTimeInTimezone();
+      if (!isTimeAfterOrEqual(time, currentTime)) {
+        return res.status(400).json({ message: "Nao eh possivel agendar para um horario passado. Escolha um horario futuro." });
+      }
     }
 
     if (!normalizedService || !normalizedPhone) {
@@ -1294,6 +1381,59 @@ app.post(
     return res.json({
       message: `Plano VIP atribuído a ${user.username} com sucesso. Vencimento: ${vipExpirationDate.toLocaleDateString("pt-BR")}.`,
       user: userPayload,
+    });
+  })
+);
+
+// GET /api/barbershop/status - Consulta status da barbearia
+app.get(
+  "/api/barbershop/status",
+  asyncHandler(async (req, res) => {
+    const status = await getBarbershopStatus();
+    return res.json({
+      isOpen: status.is_open,
+      closureReason: status.closure_reason,
+    });
+  })
+);
+
+// PUT /api/admin/barbershop/status - Altera status da barbearia (admin only)
+app.put(
+  "/api/admin/barbershop/status",
+  authMiddleware,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const { isOpen, closureReason } = req.body || {};
+
+    if (typeof isOpen !== "boolean") {
+      return res.status(400).json({ message: "isOpen deve ser booleano (true/false)." });
+    }
+
+    // Se for fechar, closureReason é obrigatório
+    if (!isOpen && (!closureReason || String(closureReason).trim().length === 0)) {
+      return res.status(400).json({ message: "Motivo do fechamento é obrigatório." });
+    }
+
+    const normalizedReason = isOpen ? null : String(closureReason).trim();
+
+    await query(
+      `
+        UPDATE barbershop_status
+        SET is_open = $1,
+            closure_reason = $2,
+            updated_at = NOW(),
+            updated_by = $3
+        WHERE id = 1;
+      `,
+      [isOpen, normalizedReason, req.user.username]
+    );
+
+    return res.json({
+      message: isOpen ? "Barbearia aberta com sucesso." : "Barbearia fechada com sucesso.",
+      status: {
+        isOpen,
+        closureReason: normalizedReason,
+      },
     });
   })
 );

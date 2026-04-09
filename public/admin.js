@@ -12,6 +12,16 @@ const closedDaysFeedback = document.getElementById("closedDaysFeedback");
 const vipUsernameInput = document.getElementById("vipUsernameInput");
 const assignVipBtn = document.getElementById("assignVipBtn");
 const vipFeedback = document.getElementById("vipFeedback");
+const openBarbershopBtn = document.getElementById("openBarbershopBtn");
+const closeBarbershopBtn = document.getElementById("closeBarbershopBtn");
+const currentBarbershopStatus = document.getElementById("currentBarbershopStatus");
+const currentClosureReason = document.getElementById("currentClosureReason");
+const closureReasonText = document.getElementById("closureReasonText");
+const closeReasonSection = document.getElementById("closeReasonSection");
+const closureReasonInput = document.getElementById("closureReasonInput");
+const confirmClosureBtn = document.getElementById("confirmClosureBtn");
+const cancelClosureBtn = document.getElementById("cancelClosureBtn");
+const barbershopStatusFeedback = document.getElementById("barbershopStatusFeedback");
 const cancellingBookings = new Set();
 
 function getToken() {
@@ -37,6 +47,63 @@ function setClosedDaysFeedback(message, type) {
 function setVipFeedback(message, type) {
   vipFeedback.textContent = message;
   vipFeedback.className = `feedback ${type}`;
+}
+
+function setBarbershopStatusFeedback(message, type) {
+  barbershopStatusFeedback.textContent = message;
+  barbershopStatusFeedback.className = `feedback ${type}`;
+}
+
+async function loadBarbershopStatus() {
+  try {
+    const response = await fetch("/api/barbershop/status");
+    const data = await response.json();
+
+    if (data.isOpen) {
+      currentBarbershopStatus.textContent = "✅ Aberta";
+      currentBarbershopStatus.style.color = "#27ae60";
+      currentClosureReason.style.display = "none";
+    } else {
+      currentBarbershopStatus.textContent = "🔒 Fechada";
+      currentBarbershopStatus.style.color = "#e74c3c";
+      closureReasonText.textContent = data.closureReason || "Sem motivo informado";
+      currentClosureReason.style.display = "block";
+    }
+  } catch (_error) {
+    currentBarbershopStatus.textContent = "Erro ao carregar status";
+  }
+}
+
+async function changeBarbershopStatus(isOpen, reason = null) {
+  setBarbershopStatusFeedback("Alterando status...", "");
+  
+  try {
+    const response = await fetch("/api/admin/barbershop/status", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders(),
+      },
+      body: JSON.stringify({
+        isOpen,
+        closureReason: reason,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setBarbershopStatusFeedback(data.message || "Erro ao alterar status.", "error");
+      return;
+    }
+
+    setBarbershopStatusFeedback(data.message, "success");
+    closeReasonSection.style.display = "none";
+    closureReasonInput.value = "";
+    await loadBarbershopStatus();
+  } catch (_error) {
+    setBarbershopStatusFeedback("Erro de conexão com o servidor.", "error");
+  }
 }
 
 async function assignVip() {
@@ -410,6 +477,29 @@ assignVipBtn.addEventListener("click", async () => {
   await assignVip();
 });
 
+openBarbershopBtn.addEventListener("click", async () => {
+  await changeBarbershopStatus(true);
+});
+
+closeBarbershopBtn.addEventListener("click", () => {
+  closeReasonSection.style.display = "block";
+  closureReasonInput.focus();
+});
+
+confirmClosureBtn.addEventListener("click", async () => {
+  const reason = closureReasonInput.value.trim();
+  if (!reason) {
+    setBarbershopStatusFeedback("Digite o motivo do fechamento.", "error");
+    return;
+  }
+  await changeBarbershopStatus(false, reason);
+});
+
+cancelClosureBtn.addEventListener("click", () => {
+  closeReasonSection.style.display = "none";
+  closureReasonInput.value = "";
+});
+
 (async () => {
   const user = await loadMe();
   if (!user) {
@@ -420,4 +510,5 @@ assignVipBtn.addEventListener("click", async () => {
   buildClosedDaySelectOptions();
   await loadSchedule();
   await loadClosedDays();
+  await loadBarbershopStatus();
 })();
