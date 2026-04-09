@@ -200,7 +200,7 @@ async function loadMe() {
   const data = await response.json();
 
   if (data.user.role !== "admin") {
-    window.location.href = "/home.html";
+    window.location.href = "/booking.html";
     return null;
   }
 
