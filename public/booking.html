@@ -1,5 +1,473 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar - Evilazio Barbershop</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .booking-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .booking-header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .booking-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .booking-form {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section {
+            margin-bottom: 40px;
+        }
+
+        .form-section h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+            border-bottom: 2px solid #d4a574;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #d4a574;
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .barber-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .barber-option {
+            position: relative;
+        }
+
+        .barber-option input {
+            display: none;
+        }
+
+        .barber-option-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .barber-option input:checked + .barber-option-label {
+            border-color: #d4a574;
+            background: rgba(212, 165, 116, 0.1);
+        }
+
+        .barber-option-label .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .barber-option-label .name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .time-slot {
+            position: relative;
+        }
+
+        .time-slot input {
+            display: none;
+        }
+
+        .time-slot-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .time-slot-label:hover {
+            border-color: #d4a574;
+        }
+
+        .time-slot input:checked + .time-slot-label {
+            background: #d4a574;
+            color: white;
+            border-color: #d4a574;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .service-item {
+            position: relative;
+        }
+
+        .service-item input {
+            display: none;
+        }
+
+        .service-item-label {
+            display: block;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .service-item input:checked + .service-item-label {
+            border-color: #d4a574;
+            background: rgba(212, 165, 116, 0.1);
+        }
+
+        .service-item-label .service-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #1a1a1a;
+        }
+
+        .service-item-label .service-time {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #d4a574 0%, #c4915a 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(212, 165, 116, 0.3);
+        }
+
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3c3;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #c33;
+        }
+
+        .summary-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #d4a574;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-form {
+                padding: 20px;
+            }
+
+            .time-slots {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="booking-container">
+        <div class="booking-header">
+            <h1>🪮 Agende seu Corte</h1>
+            <p>Escolha o melhor horário para você</p>
+        </div>
+
+        <form class="booking-form" id="bookingForm">
+            <div class="form-section">
+                <h2>Dados Pessoais</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="name">Nome</label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email">
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Telefone *</label>
+                        <input type="tel" id="phone" name="phone" placeholder="(85) 9 9999-9999" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h2>Escolha um Barbeiro</h2>
+                <div class="barber-selector" id="barberSelector"></div>
+            </div>
+
+            <div class="form-section">
+                <h2>Tipo de Serviço</h2>
+                <div class="services-grid" id="servicesGrid"></div>
+            </div>
+
+            <div class="form-section">
+                <h2>Data e Horário</h2>
+                <div class="form-group">
+                    <label for="day">Escolha um dia</label>
+                    <input type="number" id="day" name="day" min="1" max="31" required>
+                </div>
+                <div class="form-group">
+                    <label>Horários disponíveis</label>
+                    <div class="time-slots" id="timeSlots"></div>
+                </div>
+            </div>
+
+            <div id="formMessage" style="display: none; margin: 20px 0;"></div>
+            <button type="submit" class="btn-submit">Confirmar Agendamento</button>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        const SERVICES = {
+            corte_social: 'Corte Social (30 min)',
+            corte_tradicional: 'Corte Tradicional (30 min)',
+            corte_degrade: 'Corte Degradê (35 min)',
+            corte_navalhado: 'Corte Navalhado (40 min)',
+            barba: 'Barba (15 min)',
+            sobrancelha: 'Sobrancelha (10 min)',
+            pezinho: 'Pezinho (20 min)',
+            corte_barba: 'Corte + Barba (45 min)',
+            corte_barba_sobrancelha: 'Corte + Barba + Sobrancelha (50 min)',
+        };
+
+        const SLOT_TIMES = Array.from({ length: 12 }, (_, i) => {
+            const hour = 8 + i;
+            return `${String(hour).padStart(2, '0')}:00`;
+        });
+
+        async function loadBarbers() {
+            try {
+                const response = await fetch(`${API_BASE}/barbers`);
+                const data = await response.json();
+
+                const selector = document.getElementById('barberSelector');
+                selector.innerHTML = `
+                    <div class="barber-option">
+                        <input type="radio" id="barber-indiferente" name="barber_preference" value="indiferente" checked>
+                        <label for="barber-indiferente" class="barber-option-label">
+                            <div class="icon">❓</div>
+                            <div class="name">Indiferente</div>
+                        </label>
+                    </div>
+                ` + data.barbers.map(barber => `
+                    <div class="barber-option">
+                        <input type="radio" id="barber-${barber.id}" name="barber_preference" value="${barber.name}">
+                        <label for="barber-${barber.id}" class="barber-option-label">
+                            <div class="icon">💈</div>
+                            <div class="name">${barber.name}</div>
+                        </label>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Erro ao carregar barbeiros:', error);
+            }
+        }
+
+        function loadServices() {
+            const grid = document.getElementById('servicesGrid');
+            grid.innerHTML = Object.entries(SERVICES).map(([key, label]) => `
+                <div class="service-item">
+                    <input type="radio" id="service-${key}" name="service" value="${key}">
+                    <label for="service-${key}" class="service-item-label">
+                        <div class="service-name">${label.split('(')[0].trim()}</div>
+                        <div class="service-time">${label.match(/\((.*?)\)/)?.[1] || ''}</div>
+                    </label>
+                </div>
+            `).join('');
+        }
+
+        function loadTimeSlots() {
+            const slots = document.getElementById('timeSlots');
+            slots.innerHTML = SLOT_TIMES.map(time => `
+                <div class="time-slot">
+                    <input type="radio" id="time-${time}" name="time" value="${time}">
+                    <label for="time-${time}" class="time-slot-label">${time}</label>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const messageDiv = document.getElementById('formMessage');
+            messageDiv.style.display = 'none';
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const barber_preference = document.querySelector('input[name="barber_preference"]:checked').value;
+            const service = document.querySelector('input[name="service"]:checked').value;
+            const day = document.getElementById('day').value;
+            const time = document.querySelector('input[name="time"]:checked').value;
+
+            if (!name || !phone || !service || !day || !time) {
+                messageDiv.className = 'error-message';
+                messageDiv.textContent = 'Preencha todos os campos obrigatórios';
+                messageDiv.style.display = 'block';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/appointments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        email,
+                        phone,
+                        barber_preference,
+                        service,
+                        day,
+                        time
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Erro ao agendar');
+                }
+
+                messageDiv.className = 'success-message';
+                messageDiv.textContent = `✓ Agendamento confirmado para o dia ${day} às ${time}!`;
+                messageDiv.style.display = 'block';
+
+                document.getElementById('bookingForm').reset();
+
+                setTimeout(() => {
+                    window.location.href = '/landing.html';
+                }, 3000);
+            } catch (error) {
+                messageDiv.className = 'error-message';
+                messageDiv.textContent = `✗ ${error.message}`;
+                messageDiv.style.display = 'block';
+            }
+        });
+
+        window.addEventListener('load', () => {
+            loadBarbers();
+            loadServices();
+            loadTimeSlots();
+        });
+    </script>
+</body>
+
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

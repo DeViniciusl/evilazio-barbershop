@@ -1,5 +1,278 @@
 ﻿<!DOCTYPE html>
 <html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Evilazio Barbershop</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: 100vh;
+        }
+
+        .admin-sidebar {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: 30px 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .admin-branding {
+            padding: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .admin-branding h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .admin-menu {
+            list-style: none;
+        }
+
+        .admin-menu li {
+            margin: 0;
+        }
+
+        .admin-menu button {
+            width: 100%;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .admin-menu button:hover,
+        .admin-menu button.active {
+            background: rgba(212, 165, 116, 0.2);
+            border-left-color: #d4a574;
+        }
+
+        .admin-content {
+            padding: 40px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1a1a1a;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #d4a574 0%, #c4915a 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .panel {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #d4a574 0%, #c4915a 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-layout">
+        <aside class="admin-sidebar">
+            <div class="admin-branding">
+                <h1>🪮 Evilazio</h1>
+                <p style="font-size: 0.9rem; opacity: 0.8;">Admin</p>
+            </div>
+
+            <ul class="admin-menu">
+                <li><button class="menu-btn active" data-panel="dashboard">📊 Dashboard</button></li>
+                <li><button class="menu-btn" data-panel="barbers">💈 Barbeiros</button></li>
+                <li><button class="menu-btn" data-panel="portfolio">🖼️ Portfólio</button></li>
+                <li><button class="menu-btn" data-panel="bookings">📅 Agendamentos</button></li>
+            </ul>
+        </aside>
+
+        <main class="admin-content">
+            <div class="admin-header">
+                <h1 class="admin-title">Dashboard</h1>
+                <button class="logout-btn" onclick="logout()">Sair</button>
+            </div>
+
+            <div id="dashboard" class="panel active">
+                <div class="card">
+                    <h2>Bem-vindo ao Painel Administrativo</h2>
+                    <p>Use o menu à esquerda para gerenciar o sistema.</p>
+                </div>
+            </div>
+
+            <div id="barbers" class="panel">
+                <div class="card">
+                    <h2>Barbeiros</h2>
+                    <div id="barbersList"></div>
+                </div>
+            </div>
+
+            <div id="portfolio" class="panel">
+                <div class="card">
+                    <h2>Portfólio</h2>
+                    <div id="portfolioList"></div>
+                </div>
+            </div>
+
+            <div id="bookings" class="panel">
+                <div class="card">
+                    <h2>Agendamentos</h2>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingsTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        document.querySelectorAll('.menu-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const panelName = e.target.dataset.panel;
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(panelName)?.classList.add('active');
+                e.target.classList.add('active');
+            });
+        });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                window.location.href = '/auth.html';
+                return;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('accessToken');
+            window.location.href = '/auth.html';
+        }
+
+        window.addEventListener('load', checkAuth);
+    </script>
+</body>
+
+</html>
+<!DOCTYPE html>
+<html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

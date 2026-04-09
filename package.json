@@ -9,12 +9,28 @@
   },
   "scripts": {
     "start": "node server.js",
-    "dev": "node --env-file=.env server.js"
+    "dev": "node --env-file=.env server.js",
+    "start:enhanced": "node --env-file=.env server-enhanced.js",
+    "dev:enhanced": "node --watch --env-file=.env server-enhanced.js",
+    "test": "jest --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "migrate": "node scripts/migrate.js"
   },
   "dependencies": {
     "express": "^4.19.2",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
-    "pg": "^8.19.0"
+    "pg": "^8.19.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.1.2",
+    "dotenv": "^16.4.5",
+    "sharp": "^0.33.1",
+    "aws-sdk": "^2.1545.0",
+    "speakeasy": "^2.0.0",
+    "qrcode": "^1.5.3"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
   }
 }
