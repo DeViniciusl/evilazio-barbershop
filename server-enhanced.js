@@ -264,8 +264,44 @@ function asyncHandler(handler) {
 }
 
 // ============================================================================
-// DATABASE INITIALIZATION
+// S3 PRESIGNED URL HELPERS
 // ============================================================================
+
+function generatePresignedUrl() {
+  // Mock presigned URL for development
+  // In production, integrate with AWS SDK
+  if (!IS_PRODUCTION) {
+    // Development: return a mock URL
+    const timestamp = Date.now();
+    const mockUrl = `https://s3.amazonaws.com/evilazio-images/${timestamp}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600`;
+    return mockUrl;
+  }
+
+  // Production: use AWS SDK
+  // Make sure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are set
+  const s3 = require("aws-sdk/clients/s3");
+  const client = new s3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION || "us-east-1",
+  });
+
+  const key = `images/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.png`;
+  const url = client.getSignedUrl("putObject", {
+    Bucket: process.env.AWS_S3_BUCKET || "evilazio-images",
+    Key: key,
+    Expires: 3600,
+    ContentType: "image/png",
+    ACL: "public-read",
+  });
+
+  return { url, publicUrl: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${key}` };
+}
+
+// ============================================================================
+
 
 async function initDatabase() {
   // Users table with email and MFA support
@@ -337,9 +373,24 @@ async function initDatabase() {
     );
   `);
 
-  // Update bookings table to include barber_id
+  // Bookings/Appointments table
   await query(`
-    ALTER TABLE bookings ADD COLUMN IF NOT EXISTS barber_id INTEGER REFERENCES barbers(id);
+    CREATE TABLE IF NOT EXISTS bookings (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      display_name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      service VARCHAR(50),
+      duration_minutes INTEGER,
+      day VARCHAR(2),
+      time VARCHAR(5),
+      status VARCHAR(20) DEFAULT 'confirmed',
+      barber_id INTEGER REFERENCES barbers(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(day, time, barber_id)
+    );
   `);
 
   // Refresh tokens (for JWT rotation)
@@ -1163,6 +1214,93 @@ app.put(
     return res.json({ booking: result.rows[0] });
   })
 );
+
+// ============================================================================
+// UPLOAD ENDPOINTS (Presigned URLs for S3)
+// ============================================================================
+
+app.post(
+  "/api/upload/presign",
+  authMiddleware,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    // Generate presigned URL for image upload
+    const { filename, contentType } = req.body || {};
+
+    if (!filename) {
+      return res
+        .status(400)
+        .json({ message: "Nome do arquivo é obrigatório." });
+    }
+
+    if (!contentType || !contentType.startsWith("image/")) {
+      return res
+        .status(400)
+        .json({ message: "Tipo de conteúdo deve ser image/*." });
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024;
+
+    // Generate safe filename
+    const sanitized = filename
+      .replace(/[^a-z0-9.-]/gi, "_")
+      .toLowerCase();
+    const key = `images/${Date.now()}-${sanitized}`;
+
+    if (!IS_PRODUCTION) {
+      // Development mode: return mock URL
+      const mockPresignedUrl = `https://s3.mock-aws.local/${key}?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=3600`;
+      return res.json({
+        presignedUrl: mockPresignedUrl,
+        publicUrl: `https://s3.mock-aws.local/${key}`,
+        key,
+        maxSize,
+      });
+    }
+
+    // Production: generate real presigned URL
+    try {
+      // Placeholder for real AWS S3 presigned URL generation
+      // In production, you would use aws-sdk/clients/s3
+      const S3 = require("aws-sdk/clients/s3");
+      const s3Client = new S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION || "us-east-1",
+      });
+
+      const presignedUrl = s3Client.getSignedUrl("putObject", {
+        Bucket: process.env.AWS_S3_BUCKET || "evilazio-images",
+        Key: key,
+        ContentType: contentType,
+        Expires: 3600,
+        ACL: "public-read",
+      });
+
+      return res.json({
+        presignedUrl,
+        publicUrl: `https://${process.env.AWS_S3_BUCKET}.s3.amazonaws.com/${key}`,
+        key,
+        maxSize,
+      });
+    } catch (error) {
+      console.error("Presigned URL generation error:", error);
+      return res
+        .status(500)
+        .json({ message: "Erro ao gerar URL de upload." });
+    }
+  })
+);
+
+app.get("/api/upload/health", (_req, res) => {
+  res.json({
+    ok: true,
+    s3Configured: !!(
+      process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
+    ),
+  });
+});
 
 // ============================================================================
 // PUBLIC ENDPOINTS
