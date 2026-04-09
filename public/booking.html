@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agendar Serviço | Evilazio Barbershop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="config.js"></script>
+  </head>
+  <body>
+    <main class="container auth-container">
+      <section class="card">
+        <h2>Agendar Serviço</h2>
+        
+        <form id="bookingForm" class="form">
+          <label>
+            Serviço
+            <select id="serviceSelect" required>
+              <option value="">Escolha um serviço</option>
+              <option value="Corte Social">Corte Social</option>
+              <option value="Corte Tradicional">Corte Tradicional</option>
+              <option value="Corte Degrade">Corte Degradê</option>
+              <option value="Corte Navalhado">Corte Navalhado</option>
+              <option value="Barba">Barba</option>
+              <option value="Sobrancelha">Sobrancelha</option>
+              <option value="Pézinho">Pézinho</option>
+              <option value="Corte + barba">Corte + Barba</option>
+              <option value="Corte + barba + sobrancelha">Corte + Barba + Sobrancelha</option>
+            </select>
+          </label>
+          
+          <label>
+            Telefone
+            <input id="phoneInput" type="tel" minlength="8" maxlength="25" autocomplete="tel" required />
+          </label>
+          
+          <label>
+            Data (dia do mês)
+            <select id="daySelect" required></select>
+          </label>
+          
+          <label>
+            Horário
+            <select id="timeSelect" required>
+              <option value="">Escolha um horário</option>
+            </select>
+          </label>
+          
+          <div id="slotGrid" class="slot-grid"></div>
+          
+          <p class="section-label" style="color: #f39c12; font-weight: bold;">
+            ⚠️ Pagamento será feito presencialmente no local
+          </p>
+          
+          <button type="submit">Confirmar Agendamento</button>
+          <button id="backBtn" type="button" class="outline-btn">Voltar</button>
+          <p id="bookingFeedback" class="feedback" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+    
+    <script src="booking.js"></script>
+  </body>
+</html>
