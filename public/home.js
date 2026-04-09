@@ -1,7 +1,6 @@
 ﻿const TOKEN_KEY = "evilazio_token";
 const accountButton = document.getElementById("accountBtn");
 const myBookingsButton = document.getElementById("myBookingsBtn");
-const logoutButton = document.getElementById("logoutBtn");
 const welcomeText = document.getElementById("welcomeText");
 const serviceSelect = document.getElementById("serviceSelect");
 const phoneInput = document.getElementById("phoneInput");
@@ -238,20 +237,6 @@ async function createBooking() {
     bookingBtn.disabled = false;
   }
 }
-
-logoutButton.addEventListener("click", async () => {
-  const token = getToken();
-
-  if (token) {
-    await fetch("/api/logout", {
-      method: "POST",
-      headers: authHeaders(),
-    }).catch(() => {});
-  }
-
-  localStorage.removeItem(TOKEN_KEY);
-  window.location.href = "/";
-});
 
 daySelect.addEventListener("change", () => {
   selectedTime = "";
