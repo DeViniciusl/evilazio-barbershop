@@ -1,392 +1,647 @@
-﻿<!DOCTYPE html>
-<html lang="pt-BR">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Evilazio Barbershop</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f5f5;
-        }
-
-        .admin-layout {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            min-height: 100vh;
-        }
-
-        .admin-sidebar {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: white;
-            padding: 30px 0;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-        }
-
-        .admin-branding {
-            padding: 20px;
-            margin-bottom: 30px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .admin-branding h1 {
-            font-size: 1.5rem;
-            margin-bottom: 5px;
-        }
-
-        .admin-menu {
-            list-style: none;
-        }
-
-        .admin-menu li {
-            margin: 0;
-        }
-
-        .admin-menu button {
-            width: 100%;
-            padding: 15px 20px;
-            background: none;
-            border: none;
-            color: white;
-            text-align: left;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-
-        .admin-menu button:hover,
-        .admin-menu button.active {
-            background: rgba(212, 165, 116, 0.2);
-            border-left-color: #d4a574;
-        }
-
-        .admin-content {
-            padding: 40px;
-        }
-
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 40px;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-title {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1a1a1a;
-        }
-
-        .logout-btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #d4a574 0%, #c4915a 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .panel {
-            display: none;
-            animation: fadeIn 0.3s;
-        }
-
-        .panel.active {
-            display: block;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 25px;
-        }
-
-        .card h2 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: #1a1a1a;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #ddd;
-            border-radius: 6px;
-            font-size: 1rem;
-            font-family: inherit;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #d4a574 0%, #c4915a 100%);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .table th,
-        .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .table th {
-            background: #f5f5f5;
-            font-weight: 600;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="admin-layout">
-        <aside class="admin-sidebar">
-            <div class="admin-branding">
-                <h1>🪮 Evilazio</h1>
-                <p style="font-size: 0.9rem; opacity: 0.8;">Admin</p>
-            </div>
-
-            <ul class="admin-menu">
-                <li><button class="menu-btn active" data-panel="dashboard">📊 Dashboard</button></li>
-                <li><button class="menu-btn" data-panel="barbers">💈 Barbeiros</button></li>
-                <li><button class="menu-btn" data-panel="portfolio">🖼️ Portfólio</button></li>
-                <li><button class="menu-btn" data-panel="bookings">📅 Agendamentos</button></li>
-            </ul>
-        </aside>
-
-        <main class="admin-content">
-            <div class="admin-header">
-                <h1 class="admin-title">Dashboard</h1>
-                <button class="logout-btn" onclick="logout()">Sair</button>
-            </div>
-
-            <div id="dashboard" class="panel active">
-                <div class="card">
-                    <h2>Bem-vindo ao Painel Administrativo</h2>
-                    <p>Use o menu à esquerda para gerenciar o sistema.</p>
-                </div>
-            </div>
-
-            <div id="barbers" class="panel">
-                <div class="card">
-                    <h2>Barbeiros</h2>
-                    <div id="barbersList"></div>
-                </div>
-            </div>
-
-            <div id="portfolio" class="panel">
-                <div class="card">
-                    <h2>Portfólio</h2>
-                    <div id="portfolioList"></div>
-                </div>
-            </div>
-
-            <div id="bookings" class="panel">
-                <div class="card">
-                    <h2>Agendamentos</h2>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Serviço</th>
-                                <th>Data</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bookingsTable">
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        const API_BASE = '/api';
-
-        document.querySelectorAll('.menu-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const panelName = e.target.dataset.panel;
-                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-                document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById(panelName)?.classList.add('active');
-                e.target.classList.add('active');
-            });
-        });
-
-        async function checkAuth() {
-            const token = localStorage.getItem('accessToken');
-            if (!token) {
-                window.location.href = '/auth.html';
-                return;
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('accessToken');
-            window.location.href = '/auth.html';
-        }
-
-        window.addEventListener('load', checkAuth);
-    </script>
-</body>
-
-</html>
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Evilazio Barbershop | Admin</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css" />
-    <script src="config.js"></script>
-  </head>
-  <body class="landing-mode">
-    <main class="container admin-container">
-      <header class="topbar card">
-        <div>
-          <h1 class="topbar-title">Painel Admin</h1>
-          <p class="topbar-subtitle">Planilha de agendamentos (08h - 19h)</p>
-        </div>
-        <button id="backBtn" type="button" class="outline-btn">Voltar</button>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Evilazio Barbershop</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-      <section class="card">
-        <div class="admin-controls">
-          <label>
-            Dia
-            <select id="daySelect"></select>
-          </label>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f5f5;
+    }
+
+    .admin-layout {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      min-height: 100vh;
+    }
+
+    .admin-sidebar {
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+      color: white;
+      padding: 30px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .admin-branding {
+      padding: 20px;
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .admin-branding h1 {
+      font-size: 1.5rem;
+      margin-bottom: 5px;
+    }
+
+    .admin-menu {
+      list-style: none;
+    }
+
+    .admin-menu li {
+      margin: 0;
+    }
+
+    .admin-menu button {
+      width: 100%;
+      padding: 15px 20px;
+      background: none;
+      border: none;
+      color: #ccc;
+      cursor: pointer;
+      font-size: 1rem;
+      text-align: left;
+      transition: all 0.3s;
+    }
+
+    .admin-menu button:hover,
+    .admin-menu button.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffd700;
+    }
+
+    .admin-content {
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .admin-title {
+      font-size: 2rem;
+      color: #2c2c2c;
+    }
+
+    .logout-btn {
+      padding: 10px 20px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .logout-btn:hover {
+      background: #c82333;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 25px;
+    }
+
+    .card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #1a1a1a;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .btn {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #d4a574 0%, #c4915a 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+
+    .btn:hover {
+      background: linear-gradient(135deg, #e5b585 0%, #d4a574 100%);
+    }
+
+    .btn-danger {
+      background: #dc3545;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    .table th,
+    .table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .table th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+
+    .list-item {
+      background: white;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .list-item-content {
+      flex: 1;
+    }
+
+    .list-item-content h3 {
+      margin-bottom: 5px;
+      color: #1a1a1a;
+    }
+
+    .list-item-content p {
+      margin: 0;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #666;
+    }
+
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-layout">
+    <aside class="admin-sidebar">
+      <div class="admin-branding">
+        <h1>🪮 Evilazio</h1>
+        <p style="font-size: 0.9rem; opacity: 0.8;">Admin</p>
+      </div>
+
+      <ul class="admin-menu">
+        <li><button class="menu-btn active" data-panel="dashboard">📊 Dashboard</button></li>
+        <li><button class="menu-btn" data-panel="barbers">💈 Barbeiros</button></li>
+        <li><button class="menu-btn" data-panel="portfolio">🖼️ Portfólio</button></li>
+        <li><button class="menu-btn" data-panel="bookings">📅 Agendamentos</button></li>
+      </ul>
+    </aside>
+
+    <main class="admin-content">
+      <div class="admin-header">
+        <h1 class="admin-title">Dashboard</h1>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+      </div>
+
+      <!-- Dashboard Panel -->
+      <div id="dashboard" class="panel active">
+        <div class="card">
+          <h2>Bem-vindo ao Painel Administrativo</h2>
+          <p>Use o menu à esquerda para gerenciar o sistema.</p>
+          <div style="margin-top: 20px; padding: 20px; background: #f9f9f9; border-radius: 6px;">
+            <h3>📊 Estatísticas Rápidas</h3>
+            <p>Agendamentos este mês: <strong id="statsBookings">--</strong></p>
+            <p>Clientes registrados: <strong id="statsUsers">--</strong></p>
+            <p>Portfólios: <strong id="statsPortfolios">--</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barbers Panel -->
+      <div id="barbers" class="panel">
+        <div class="card">
+          <h2>Gerenciar Barbeiros</h2>
+          
+          <form id="barberForm" onsubmit="saveBaber(event)">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="barberName">Nome</label>
+                <input type="text" id="barberName" required />
+              </div>
+              <div class="form-group">
+                <label for="barberSpecialty">Especialidade</label>
+                <input type="text" id="barberSpecialty" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="barberBio">Bio</label>
+              <textarea id="barberBio"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="barberContact">Contato (Instagram)</label>
+              <input type="text" id="barberContact" placeholder="@usuario" />
+            </div>
+            <button type="submit" class="btn">Salvar Barbeiro</button>
+          </form>
         </div>
 
-        <div class="table-wrap">
-          <table class="admin-table">
+        <div class="card">
+          <h2>Lista de Barbeiros</h2>
+          <div id="barbersList" class="loading">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- Portfolio Panel -->
+      <div id="portfolio" class="panel">
+        <div class="card">
+          <h2>Criar Portfólio</h2>
+          
+          <form id="portfolioForm" onsubmit="savePortfolio(event)">
+            <div class="form-group">
+              <label for="portfolioTitle">Título</label>
+              <input type="text" id="portfolioTitle" required />
+            </div>
+            <div class="form-group">
+              <label for="portfolioDesc">Descrição</label>
+              <textarea id="portfolioDesc"></textarea>
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" id="portfolioPublished" />
+                Publicado
+              </label>
+            </div>
+            <button type="submit" class="btn">Criar Portfólio</button>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Portfólios</h2>
+          <div id="portfolioList" class="loading">Carregando...</div>
+        </div>
+      </div>
+
+      <!-- Bookings Panel -->
+      <div id="bookings" class="panel">
+        <div class="card">
+          <h2>Agendamentos</h2>
+          <table class="table">
             <thead>
               <tr>
-                <th>Horario</th>
-                <th>Status</th>
                 <th>Cliente</th>
-                <th>Servico</th>
-                <th>Tempo medio</th>
                 <th>Telefone</th>
-                <th>Acoes</th>
+                <th>Serviço</th>
+                <th>Data/Hora</th>
+                <th>Barbeiro</th>
+                <th>Status</th>
+                <th>Ações</th>
               </tr>
             </thead>
-            <tbody id="adminRows"></tbody>
+            <tbody id="bookingsTable" class="loading">
+              <tr><td colspan="7">Carregando...</td></tr>
+            </tbody>
           </table>
         </div>
-
-        <p id="adminFeedback" class="feedback" aria-live="polite"></p>
-      </section>
-
-      <section class="card">
-        <h2>Gerenciar Dias Fechados</h2>
-        <div class="admin-controls">
-          <label>
-            Dia para fechar
-            <select id="closedDaySelect"></select>
-          </label>
-          <label>
-            Motivo (opcional)
-            <input id="closedDayReason" type="text" placeholder="Ex: Saúde, Férias" />
-          </label>
-          <button id="addClosedDayBtn" type="button">Marcar como fechado</button>
-        </div>
-
-        <div>
-          <h3>Dias Fechados</h3>
-          <div id="closedDaysList" class="closed-days-list"></div>
-          <p id="closedDaysEmpty" class="section-label">Nenhum dia marcado como fechado.</p>
-          <p id="closedDaysFeedback" class="feedback" aria-live="polite"></p>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>Gerenciar Planos VIP</h2>
-        <div class="admin-controls">
-          <label>
-            Username do cliente
-            <input id="vipUsernameInput" type="text" placeholder="Digite o username único do cliente" />
-          </label>
-          <button id="assignVipBtn" type="button">Atribuir plano VIP</button>
-        </div>
-
-        <div id="vipFeedback" class="feedback" aria-live="polite"></div>
-      </section>
-
-      <section class="card">
-        <h2>Status da Barbearia</h2>
-        <div class="admin-controls">
-          <div id="barbershopStatusDisplay" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 5px;">
-            <p><strong>Status atual:</strong> <span id="currentBarbershopStatus">Carregando...</span></p>
-            <p id="currentClosureReason" style="display: none;"><strong>Motivo:</strong> <span id="closureReasonText"></span></p>
-          </div>
-          
-          <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-            <button id="openBarbershopBtn" type="button" class="outline-btn">Abrir Barbearia</button>
-            <button id="closeBarbershopBtn" type="button" class="outline-btn" style="color: #e74c3c;">Fechar Barbearia</button>
-          </div>
-
-          <div id="closeReasonSection" style="display: none;">
-            <label>
-              Motivo do fechamento (obrigatório)
-              <input id="closureReasonInput" type="text" placeholder="Ex: Férias, Manutenção, Saúde" required />
-            </label>
-            <button id="confirmClosureBtn" type="button">Confirmar fechamento</button>
-            <button id="cancelClosureBtn" type="button" class="outline-btn">Cancelar</button>
-          </div>
-        </div>
-
-        <p id="barbershopStatusFeedback" class="feedback" aria-live="polite"></p>
-      </section>
+      </div>
     </main>
+  </div>
 
-    <script src="admin.js"></script>
-  </body>
+  <script>
+    const API_BASE = '/api';
+
+    // Menu navigation
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const panelName = e.target.dataset.panel;
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(panelName)?.classList.add('active');
+        e.target.classList.add('active');
+        
+        // Load data for the panel
+        if (panelName === 'barbers') loadBarbers();
+        if (panelName === 'portfolio') loadPortfolios();
+        if (panelName === 'bookings') loadBookings();
+        if (panelName === 'dashboard') loadStats();
+      });
+    });
+
+    // Auth check
+    async function checkAuth() {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        window.location.href = '/auth.html';
+        return false;
+      }
+      return token;
+    }
+
+    function logout() {
+      localStorage.removeItem('accessToken');
+      window.location.href = '/auth.html';
+    }
+
+    // Barbers CRUD
+    async function saveBaber(event) {
+      event.preventDefault();
+      const token = await checkAuth();
+      if (!token) return;
+
+      const data = {
+        name: document.getElementById('barberName').value,
+        bio: document.getElementById('barberBio').value,
+        specialty: document.getElementById('barberSpecialty').value,
+        contact: document.getElementById('barberContact').value,
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/barbers`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+          alert('Barbeiro salvo com sucesso!');
+          document.getElementById('barberForm').reset();
+          loadBarbers();
+        } else {
+          alert('Erro ao salvar barbeiro');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Erro ao salvar barbeiro');
+      }
+    }
+
+    async function loadBarbers() {
+      try {
+        const response = await fetch(`${API_BASE}/barbers`);
+        const data = await response.json();
+        const barbersList = document.getElementById('barbersList');
+
+        if (data.barbers && data.barbers.length > 0) {
+          barbersList.innerHTML = data.barbers
+            .map(b => `
+              <div class="list-item">
+                <div class="list-item-content">
+                  <h3>${b.name}</h3>
+                  <p>${b.bio || 'Sem bio'}</p>
+                  <p>Especialidade: ${b.specialty || 'N/A'}</p>
+                </div>
+              </div>
+            `)
+            .join('');
+        } else {
+          barbersList.innerHTML = '<div class="empty-state">Nenhum barbeiro cadastrado</div>';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('barbersList').innerHTML = '<div class="error">Erro ao carregar barbeiros</div>';
+      }
+    }
+
+    // Portfolio CRUD
+    async function savePortfolio(event) {
+      event.preventDefault();
+      const token = await checkAuth();
+      if (!token) return;
+
+      const data = {
+        title: document.getElementById('portfolioTitle').value,
+        description: document.getElementById('portfolioDesc').value,
+        published: document.getElementById('portfolioPublished').checked,
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/portfolio`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (response.ok) {
+          alert('Portfólio criado com sucesso!');
+          document.getElementById('portfolioForm').reset();
+          loadPortfolios();
+        } else {
+          alert('Erro ao criar portfólio');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Erro ao criar portfólio');
+      }
+    }
+
+    async function loadPortfolios() {
+      try {
+        const response = await fetch(`${API_BASE}/portfolio`);
+        const data = await response.json();
+        const portfolioList = document.getElementById('portfolioList');
+
+        if (data.portfolios && data.portfolios.length > 0) {
+          portfolioList.innerHTML = data.portfolios
+            .map(p => `
+              <div class="list-item">
+                <div class="list-item-content">
+                  <h3>${p.title}</h3>
+                  <p>${p.description || 'Sem descrição'}</p>
+                  <p>Status: ${p.published ? '✅ Publicado' : '❌ Rascunho'}</p>
+                </div>
+              </div>
+            `)
+            .join('');
+        } else {
+          portfolioList.innerHTML = '<div class="empty-state">Nenhum portfólio criado</div>';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('portfolioList').innerHTML = '<div class="error">Erro ao carregar portfólios</div>';
+      }
+    }
+
+    // Bookings
+    async function loadBookings() {
+      const token = await checkAuth();
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/appointments`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+
+        const data = await response.json();
+        const tbody = document.getElementById('bookingsTable');
+
+        if (data.bookings && data.bookings.length > 0) {
+          tbody.innerHTML = data.bookings
+            .map(b => `
+              <tr>
+                <td>${b.display_name}</td>
+                <td>${b.phone}</td>
+                <td>${b.service}</td>
+                <td>${b.day} às ${b.time}</td>
+                <td>${b.barber_id ? 'Atribuído' : 'Qualquer'}</td>
+                <td>${b.status}</td>
+                <td><button class="btn btn-sm" onclick="updateBookingStatus(${b.id})">Atualizar</button></td>
+              </tr>
+            `)
+            .join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Nenhum agendamento</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('bookingsTable').innerHTML = '<tr><td colspan="7" class="error">Erro ao carregar</td></tr>';
+      }
+    }
+
+    async function updateBookingStatus(id) {
+      const token = await checkAuth();
+      if (!token) return;
+
+      const status = prompt('Novo status (confirmed/completed/cancelled)');
+      if (!status) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/appointments/${id}/status`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ status }),
+        });
+
+        if (response.ok) {
+          loadBookings();
+        } else {
+          alert('Erro ao atualizar agendamento');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    // Stats
+    async function loadStats() {
+      const token = localStorage.getItem('accessToken');
+      try {
+        const bookings = await fetch(`${API_BASE}/appointments`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        const portfolio = await fetch(`${API_BASE}/portfolio`);
+
+        const bookingsData = await bookings.json();
+        const portfolioData = await portfolio.json();
+
+        document.getElementById('statsBookings').textContent = bookingsData.bookings?.length || 0;
+        document.getElementById('statsPortfolios').textContent = portfolioData.portfolios?.length || 0;
+        document.getElementById('statsUsers').textContent = 'N/A';
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    // Init
+    window.addEventListener('load', () => {
+      checkAuth();
+      loadStats();
+    });
+  </script>
+</body>
 </html>
-
