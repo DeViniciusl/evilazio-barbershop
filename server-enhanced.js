@@ -699,6 +699,145 @@ app.post(
 );
 
 // ============================================================================
+// 2FA (TOTP) ENDPOINTS
+// ============================================================================
+
+app.post(
+  "/api/auth/2fa/setup",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const secret = speakeasy.generateSecret({
+      name: `Evilazio Barbershop (${req.user.email})`,
+      issuer: "Evilazio Barbershop",
+      length: 32,
+    });
+
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    return res.json({
+      secret: secret.base32,
+      qrCode,
+      message: "QR code gerado. Escaneie com seu aplicativo de autenticação.",
+    });
+  })
+);
+
+app.post(
+  "/api/auth/2fa/enable",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const { secret, code } = req.body || {};
+
+    if (!secret || !code) {
+      return res
+        .status(400)
+        .json({ message: "Secret e código são obrigatórios." });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret,
+      encoding: "base32",
+      token: code,
+      window: 2,
+    });
+
+    if (!verified) {
+      return res
+        .status(400)
+        .json({ message: "Código TOTP inválido." });
+    }
+
+    await query(
+      `UPDATE users SET mfa_enabled = TRUE, mfa_secret = $1 WHERE id = $2`,
+      [secret, req.user.id]
+    );
+
+    return res.json({ message: "Autenticação 2FA habilitada com sucesso." });
+  })
+);
+
+app.post(
+  "/api/auth/2fa/disable",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const { password } = req.body || {};
+
+    if (!password) {
+      return res
+        .status(400)
+        .json({ message: "Senha é obrigatória." });
+    }
+
+    const user = await query(`SELECT * FROM users WHERE id = $1`, [
+      req.user.id,
+    ]);
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    const validPassword = await verifyPassword(
+      password,
+      user.rows[0].password_hash
+    );
+
+    if (!validPassword) {
+      return res.status(401).json({ message: "Senha inválida." });
+    }
+
+    await query(
+      `UPDATE users SET mfa_enabled = FALSE, mfa_secret = NULL WHERE id = $1`,
+      [req.user.id]
+    );
+
+    return res.json({ message: "Autenticação 2FA desabilitada com sucesso." });
+  })
+);
+
+app.post(
+  "/api/auth/2fa/verify",
+  asyncHandler(async (req, res) => {
+    const { email, code } = req.body || {};
+
+    if (!email || !code) {
+      return res
+        .status(400)
+        .json({ message: "Email e código são obrigatórios." });
+    }
+
+    const user = await query(`SELECT * FROM users WHERE email = $1`, [
+      normalizeEmail(email),
+    ]);
+
+    if (user.rows.length === 0 || !user.rows[0].mfa_enabled) {
+      return res
+        .status(401)
+        .json({ message: "2FA não ativado ou usuário não encontrado." });
+    }
+
+    const verified = speakeasy.totp.verify({
+      secret: user.rows[0].mfa_secret,
+      encoding: "base32",
+      token: code,
+      window: 2,
+    });
+
+    if (!verified) {
+      return res.status(401).json({ message: "Código TOTP inválido." });
+    }
+
+    // Return a verified token
+    const sessionToken = jwt.sign(
+      { userId: user.rows[0].id, verified2fa: true },
+      JWT_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    return res.json({ sessionToken, message: "2FA verificado com sucesso." });
+  })
+);
+
+// ============================================================================
 // BARBER ENDPOINTS
 // ============================================================================
 
@@ -1000,6 +1139,31 @@ app.delete(
   })
 );
 
+app.put(
+  "/api/admin/portfolio/:portfolioId/images/:imageId/reorder",
+  authMiddleware,
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const imageId = Number.parseInt(req.params.imageId, 10);
+    const { order_index } = req.body || {};
+
+    if (!Number.isInteger(order_index)) {
+      return res.status(400).json({ message: "order_index inválido." });
+    }
+
+    const result = await query(
+      `UPDATE portfolio_images SET order_index = $1 WHERE id = $2 RETURNING *`,
+      [order_index, imageId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Imagem não encontrada." });
+    }
+
+    return res.json({ image: result.rows[0] });
+  })
+);
+
 // ============================================================================
 // BARBER IMAGES (Carousel) ENDPOINTS
 // ============================================================================
@@ -1084,16 +1248,55 @@ app.put(
 // BOOKING ENDPOINTS (ENHANCED)
 // ============================================================================
 
+// Get available slots for a specific barber and day
+app.get(
+  "/api/appointments/available",
+  asyncHandler(async (req, res) => {
+    const { day, barber_id } = req.query || {};
+    const normalizedDay = normalizeDay(day);
+
+    if (!normalizedDay || !isValidDayInCurrentMonth(normalizedDay)) {
+      return res
+        .status(400)
+        .json({ message: "Dia inválido para o mês atual." });
+    }
+
+    let bookedSlots;
+    if (barber_id) {
+      bookedSlots = await query(
+        `SELECT time FROM bookings 
+         WHERE day = $1 AND barber_id = $2 AND status = 'confirmed'`,
+        [normalizedDay, barber_id]
+      );
+    } else {
+      bookedSlots = await query(
+        `SELECT time FROM bookings 
+         WHERE day = $1 AND status = 'confirmed'`,
+        [normalizedDay]
+      );
+    }
+
+    const bookedTimes = bookedSlots.rows.map((row) => row.time);
+    const availableSlots = SLOT_TIMES.filter(
+      (time) => !bookedTimes.includes(time)
+    );
+
+    return res.json({ available: availableSlots, booked: bookedTimes });
+  })
+);
+
 app.post(
   "/api/appointments",
   asyncHandler(async (req, res) => {
-    const { day, time, service, phone, name, email, barber_preference } =
+    const { day, time, service, phone, name, email, barber_preference, user_id } =
       req.body || {};
 
     const normalizedDay = normalizeDay(day);
     const normalizedPhone = normalizePhoneInput(phone);
     const normalizedService = String(service || "").trim();
+    const normalizedEmail = email ? normalizeEmail(email) : null;
 
+    // Validations
     if (
       !normalizedDay ||
       !isValidDayInCurrentMonth(normalizedDay)
@@ -1115,6 +1318,16 @@ app.post(
         .json({ message: "Telefone e serviço são obrigatórios." });
     }
 
+    if (!name || name.trim().length < 2) {
+      return res
+        .status(400)
+        .json({ message: "Nome é obrigatório e deve ter pelo menos 2 caracteres." });
+    }
+
+    if (normalizedEmail && !isValidEmail(normalizedEmail)) {
+      return res.status(400).json({ message: "Email inválido." });
+    }
+
     const serviceDuration = getServiceDuration(normalizedService);
     if (!serviceDuration) {
       return res.status(400).json({ message: "Serviço inválido." });
@@ -1124,11 +1337,26 @@ app.post(
     let barberId = null;
     if (barber_preference && barber_preference !== "indiferente") {
       const barber = await query(
-        `SELECT id FROM barbers WHERE name = $1`,
+        `SELECT id FROM barbers WHERE LOWER(name) = LOWER($1)`,
         [barber_preference]
       );
       if (barber.rows.length > 0) {
         barberId = barber.rows[0].id;
+      } else {
+        // If specified barber not found, return error
+        return res.status(400).json({ message: "Barbeiro não encontrado." });
+      }
+    } else {
+      // "Indiferente" - get first available barber
+      const availableBarbers = await query(
+        `SELECT DISTINCT b.id FROM barbers b 
+         LEFT JOIN bookings bk ON b.id = bk.barber_id 
+         WHERE bk.day IS DISTINCT FROM $1 OR bk.time IS DISTINCT FROM $2 OR bk.status != 'confirmed'
+         LIMIT 1`,
+        [normalizedDay, time]
+      );
+      if (availableBarbers.rows.length > 0) {
+        barberId = availableBarbers.rows[0].id;
       }
     }
 
@@ -1136,17 +1364,33 @@ app.post(
     try {
       await client.query("BEGIN");
 
+      // Check availability (double booking prevention)
+      const existingBooking = await client.query(
+        `SELECT id FROM bookings 
+         WHERE day = $1 AND time = $2 AND barber_id = $3 AND status = 'confirmed'
+         LIMIT 1`,
+        [normalizedDay, time, barberId]
+      );
+
+      if (existingBooking.rows.length > 0) {
+        await client.query("ROLLBACK");
+        return res
+          .status(409)
+          .json({ message: "Horário indisponível para o barbeiro selecionado." });
+      }
+
       const insertBooking = await client.query(
         `INSERT INTO bookings (
-          user_id, username, display_name, phone, service, duration_minutes,
+          user_id, display_name, email, phone, service, duration_minutes,
           day, time, status, barber_id
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'confirmed', $9)
+        ON CONFLICT (day, time, barber_id) DO NOTHING
         RETURNING *`,
         [
-          req.user?.id || null,
-          req.user?.email || email || "guest",
-          name || "Cliente",
+          user_id || req.user?.id || null,
+          name.trim(),
+          normalizedEmail,
           normalizedPhone,
           normalizedService,
           serviceDuration,
@@ -1156,6 +1400,13 @@ app.post(
         ]
       );
 
+      if (insertBooking.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res
+          .status(409)
+          .json({ message: "Horário indisponível. Por favor, escolha outro." });
+      }
+
       await client.query("COMMIT");
 
       return res.status(201).json({
@@ -1164,11 +1415,7 @@ app.post(
       });
     } catch (error) {
       await client.query("ROLLBACK");
-      if (error.code === "23505") {
-        return res
-          .status(409)
-          .json({ message: "Horário indisponível." });
-      }
+      console.error("Booking error:", error);
       throw error;
     } finally {
       client.release();
@@ -1183,11 +1430,16 @@ app.get(
     const result =
       req.user.role === "admin"
         ? await query(
-            `SELECT * FROM bookings ORDER BY created_at DESC LIMIT 100`
+            `SELECT b.*, br.name as barber_name FROM bookings b
+             LEFT JOIN barbers br ON b.barber_id = br.id
+             ORDER BY b.day DESC, b.time DESC LIMIT 100`
           )
         : await query(
-            `SELECT * FROM bookings WHERE user_id = $1 ORDER BY created_at DESC`,
-            [req.user.id]
+            `SELECT b.*, br.name as barber_name FROM bookings b
+             LEFT JOIN barbers br ON b.barber_id = br.id
+             WHERE b.user_id = $1 OR b.email = $2 
+             ORDER BY b.day DESC, b.time DESC`,
+            [req.user.id, req.user.email]
           );
 
     return res.json({ bookings: result.rows });
@@ -1202,8 +1454,12 @@ app.put(
     const bookingId = Number.parseInt(req.params.id, 10);
     const { status } = req.body || {};
 
+    if (!["confirmed", "cancelled", "pending", "completed"].includes(status)) {
+      return res.status(400).json({ message: "Status inválido." });
+    }
+
     const result = await query(
-      `UPDATE bookings SET status = $1 WHERE id = $2 RETURNING *`,
+      `UPDATE bookings SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
       [status, bookingId]
     );
 
@@ -1212,6 +1468,37 @@ app.put(
     }
 
     return res.json({ booking: result.rows[0] });
+  })
+);
+
+app.delete(
+  "/api/appointments/:id",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+    const bookingId = Number.parseInt(req.params.id, 10);
+
+    // Check if user is admin or owner
+    const booking = await query(`SELECT * FROM bookings WHERE id = $1`, [
+      bookingId,
+    ]);
+
+    if (
+      booking.rows.length === 0 ||
+      (req.user.role !== "admin" &&
+        booking.rows[0].user_id !== req.user.id &&
+        booking.rows[0].email !== req.user.email)
+    ) {
+      return res
+        .status(404)
+        .json({ message: "Agendamento não encontrado." });
+    }
+
+    const result = await query(
+      `DELETE FROM bookings WHERE id = $1`,
+      [bookingId]
+    );
+
+    return res.json({ message: "Agendamento cancelado com sucesso." });
   })
 );
 
